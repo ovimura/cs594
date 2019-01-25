@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
+#include "packet.h"
 
 struct Request {
   int sockfd;
@@ -18,7 +18,7 @@ struct Request {
   char buf[1024];
 };
 
-long PORT = 0;
+//long PORT = 0;
 
 int isNumber(char* s)
 {
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 {
 
   int sockfd;
-  char buffer[1024];
+  char *buffer = malloc(2048);
   char *hello = "Hello from server";
   struct sockaddr_in servaddr, cliaddr;
 
@@ -70,9 +70,17 @@ int main(int argc, char** argv)
     exit(EXIT_FAILURE);
   }
   int len, n;
-  n = recvfrom(sockfd, (char *)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
+  n = recvfrom(sockfd, (char *)buffer, 2048, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
   buffer[n] = '\0';
-  printf("Client: %s\n", buffer);
+  printf("n: %d\n", n);
+  for (int i=0; i<2048;i++)
+	  printf("%02X ", buffer[i]);
+  struct Packet_SYN_C *p = (struct Packet_SYN_C*)buffer;
+  printf("\nfilename: %s\n", p->filename);
+  printf("type: %d\n", p->type);
+  printf("pkt_len: %d\n", p->pkt_len);
+  printf("Client: |%d|, |%d|, |%s|\n", ((struct Packet_SYN_C*)buffer)->type, ((struct Packet_SYN_C*)buffer)->pkt_len, ((struct Packet_SYN_C*)buffer)->filename);
+  free(buffer);
   sendto(sockfd, (const char *)hello, strlen(hello), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
   printf("Hello message sent.\n");
 

@@ -1,10 +1,12 @@
 
+long PORT = 8080;
+
 enum packet_type {S, R, W, D, A, C};
 
 struct Packet_SYN_C {
-  enum packet_type type;
+  char type;
   short pkt_len;
-  char filename[1024];
+  char filename[100];
 };
 
 struct Packet_SYN_ACK_C {
