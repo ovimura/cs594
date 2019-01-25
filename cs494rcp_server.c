@@ -18,7 +18,7 @@ struct Request {
   char buf[1024];
 };
 
-long PORT = 8080;
+long PORT = 0;
 
 int isNumber(char* s)
 {
@@ -31,15 +31,6 @@ int isNumber(char* s)
     }
 }
 
-void *server_process(void *vargs)
-{ struct Request *req = (struct Request*)vargs;
-  printf("Client: %s\n", req->buf);
-  sendto(req->sockfd, (const char *)req->hello, strlen(req->hello), MSG_CONFIRM, (const struct sockaddr *)&req->cliaddr, req->len);
-  printf("Hello message sent.\n");
-  pthread_exit(NULL);
-}
-
-
 
 int main(int argc, char** argv)
 {
@@ -49,6 +40,15 @@ int main(int argc, char** argv)
   char *hello = "Hello from server";
   struct sockaddr_in servaddr, cliaddr;
 
+  if (argc != 2)
+    printf("Usage: %s <port>\n", argv[0]);
+  else if (argc == 2) {
+    if(isNumber(argv[1]))
+    {
+      PORT = atol(argv[1]);
+    }
+  }
+  printf("port: %ld\n",PORT);
   // Create socket file descriptor
   if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0))<0){
     perror("socket creation failed");
@@ -72,35 +72,9 @@ int main(int argc, char** argv)
   int len, n;
   n = recvfrom(sockfd, (char *)buffer, 1024, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
   buffer[n] = '\0';
-  printf("%d %s %ld, %p, %d\n", sockfd, (const char*)hello, strlen(hello), (const struct sockaddr*)&cliaddr, len);
-  //  printf("Client: %s\n", buffer);
-//  sendto(sockfd, (const char *)hello, strlen(hello), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-//  printf("Hello message sent.\n");
+  printf("Client: %s\n", buffer);
+  sendto(sockfd, (const char *)hello, strlen(hello), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+  printf("Hello message sent.\n");
 
-/*  
-  pthread_t thread_id;
-  if (argc != 2)
-    printf("Usage: %s <port>\n", argv[0]);
-  else if (argc == 2) {    
-    if(isNumber(argv[1]))
-    {
-      PORT = (long)argv[1];
-      pthread_create(&thread_id, NULL, server_process, &sockfd);
-      pthread_join(thread_id, NULL);
-    }
-  }*/
-pthread_t thread_id;
-
-  while (1) {
-	struct Request *request = (struct Request*)malloc(sizeof(struct Request));
-	request->len = len;
-	memcpy(request->buf, buffer, 1024);
-	request->cliaddr = cliaddr;
-	request->sockfd = sockfd;
-	request->hello = hello;
-    pthread_create(&thread_id, NULL, server_process, (void*)request);
-    pthread_join(thread_id, NULL);
-    exit(0);
-  }
   return 0;
 }
