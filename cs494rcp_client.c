@@ -27,6 +27,28 @@ char * serialize_s(struct Packet_SYN_C *p)
 //  return NULL;
 //}
 
+int isServerIpFormat(char *ip)
+{ char delim[] = ".";
+  char *ptr = strtok(ip, delim);
+  int i = 0; 
+  while(ptr != NULL)
+  {
+    printf("%s \n", ptr);
+    ptr = strtok(NULL, delim);
+    i++;
+  }
+  printf("%d\n",i);
+  if(i==4)
+    return 1;
+  else
+    return 0;
+}
+
+int validateFileName(char *fname)
+{
+  return 1;
+}
+
 int handshake(struct sockaddr_in servaddr)
 {
   struct Packet_SYN_C syn;
@@ -53,6 +75,10 @@ int main(int argc, char** argv)
   {
     printf("Usage: %s <server_ip> <port> <file>\n", argv[0]);
   } else {
+    if(!isServerIpFormat(argv[1])) {
+	    printf("server_ip is not correct format\n");
+	    exit(-1);
+    }
     if(isNumber(argv[2]))
 	printf("port is a number\n");
     printf("%s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
