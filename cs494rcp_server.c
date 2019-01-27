@@ -1,18 +1,10 @@
-/*#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h> */
 #include "packet.h"
 
 long PORT = 8080;
 
 int sockfd;
+
+struct sockaddr_in servaddr, cliaddr;
 
 struct Request {
   int sockfd;
@@ -28,37 +20,49 @@ struct Packet_SYN_C *desirealize_s(char *b)
   return p;
 }
 
+char * serialize_r(struct Packet_SYN_ACK_C *p)
+{
+  char *r = (char*)malloc(sizeof(struct Packet_SYN_ACK_C));
+  memcpy(r, (const char*)p, 1024);
+  return r;
+}
+
+
+
+char *hello = "Hello from server";
+struct Packet_SYN_ACK_C s_ack;
+char *buf;// = serialize_r(&s_ack);
+
 int handshake(struct sockaddr_in cliaddr)
 {
-  char *buffer = malloc(2048);
+  char buffer[2048];// = malloc(2048);
   int len, n;
   n = recvfrom(sockfd, (char *)buffer, 2048, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
   buffer[n] = '\0';
   printf("n: %d\n", n);
-  for (int i=0; i<2048;i++)
-          printf("%02X ", buffer[i]);
 
   struct Packet_SYN_C *p = (struct Packet_SYN_C*)desirealize_s(buffer);
 
-  printf("\nfilename: %s\n", p->filename);
-  printf("type: %d\n", p->type);
-  printf("pkt_len: %d\n", p->pkt_len);
-  printf("Client: |%d|, |%d|, |%s|\n", ((struct Packet_SYN_C*)buffer)->type, ((struct Packet_SYN_C*)buffer)->pkt_len, ((struct Packet_SYN_C*)buffer)->filename);
-  free(buffer);
-  char*hello = "Hello from serveR";
-  sendto(sockfd, (const char *)hello, 1024, MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-  printf("Hello message sent.\n");      
+  printf("Client: |%d|, |%d|, |%s|\n", p->type, p->pkt_len, p->filename);
+
+//  struct Packet_SYN_ACK_C syn_ack;
+//  syn_ack.type = R;
+//  syn_ack.file_size = 1234567890;
+  s_ack.type = R;
+  s_ack.file_size = 3333333;
+  buf = serialize_r(&s_ack);
+
+  for(int j=0;j<10; j++) {
+    sendto(sockfd, (const char*)buf, sizeof(s_ack), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+    printf("Hello message sent.\n");      
+  }
+  
+  close(sockfd);
   return 1;
 }
 
 int main(int argc, char** argv)
 {
-
-//  int sockfd;
-//  char *buffer = malloc(2048);
-  char *hello = "Hello from server";
-  struct sockaddr_in servaddr, cliaddr;
-
   if (argc != 2)
     printf("Usage: %s <port>\n", argv[0]);
   else if (argc == 2) {
@@ -67,7 +71,6 @@ int main(int argc, char** argv)
       PORT = atol(argv[1]);
     }
   }
-  printf("port: %ld\n",PORT);
   // Create socket file descriptor
   if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0))<0){
     perror("socket creation failed");
@@ -89,22 +92,5 @@ int main(int argc, char** argv)
     exit(EXIT_FAILURE);
   }
   handshake(cliaddr);
-/*  int len, n;
-  n = recvfrom(sockfd, (char *)buffer, 2048, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
-  buffer[n] = '\0';
-  printf("n: %d\n", n);
-  for (int i=0; i<2048;i++)
-	  printf("%02X ", buffer[i]);
-
-  struct Packet_SYN_C *p = (struct Packet_SYN_C*)desirealize_s(buffer);
-
-  printf("\nfilename: %s\n", p->filename);
-  printf("type: %d\n", p->type);
-  printf("pkt_len: %d\n", p->pkt_len);
-  printf("Client: |%d|, |%d|, |%s|\n", ((struct Packet_SYN_C*)buffer)->type, ((struct Packet_SYN_C*)buffer)->pkt_len, ((struct Packet_SYN_C*)buffer)->filename);
-  free(buffer);
-  sendto(sockfd, (const char *)hello, strlen(hello), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-  printf("Hello message sent.\n");
-*/
   return 0;
 }
