@@ -11,6 +11,14 @@ char * serialize_s(struct Packet_SYN_C *p)
   return s;
 }
 
+char m[1024];
+
+char * serialize_w(struct Packet_ACK_C *p)
+{
+  memcpy(m, (const char*)p, 1024);
+  return m;
+}
+
 //struct *Packet_SYN_C desirealize_s(char *b)
 //{
 //  return NULL;
@@ -42,6 +50,11 @@ struct Packet_SYN_ACK_C *desirealize_r(char *b)
   return p;
 }
 
+
+
+
+struct Packet_ACK_C ack_c;
+
 int handshake(struct sockaddr_in servaddr)
 {
   struct Packet_SYN_C syn;
@@ -58,6 +71,11 @@ int handshake(struct sockaddr_in servaddr)
   printf("received: %d\n",n);
   struct Packet_SYN_ACK_C *p = desirealize_r(bb);
   printf("Server: %d %ld\n", p->type, p->file_size);
+  
+//  struct Packet_ACK_C ack_c;
+  ack_c.type = W;
+  printf("send again\n"); 
+  sendto(sockfd, (const char*)serialize_w(&ack_c), 1024, MSG_CONFIRM, (const struct sockaddr*)&servaddr, sizeof(servaddr));
   close(sockfd);
   return 1;
 }

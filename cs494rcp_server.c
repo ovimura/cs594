@@ -20,18 +20,24 @@ struct Packet_SYN_C *desirealize_s(char *b)
   return p;
 }
 
+struct Packet_ACK_C *desirealize_w(char *b)
+{
+  struct Packet_ACK_C *p = (struct Packet_ACK_C*)b;
+  return p;
+}
+char *r;
 char * serialize_r(struct Packet_SYN_ACK_C *p)
 {
-  char *r = (char*)malloc(sizeof(struct Packet_SYN_ACK_C));
+  r = (char*)malloc(sizeof(struct Packet_SYN_ACK_C));
   memcpy(r, (const char*)p, 1024);
   return r;
 }
 
-
-
 char *hello = "Hello from server";
 struct Packet_SYN_ACK_C s_ack;
 char *buf;// = serialize_r(&s_ack);
+
+char bu[1024];
 
 int handshake(struct sockaddr_in cliaddr)
 {
@@ -56,10 +62,18 @@ int handshake(struct sockaddr_in cliaddr)
     sendto(sockfd, (const char*)buf, sizeof(s_ack), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
     printf("Hello message sent.\n");      
   }
-  
+
+//  sleep(3);
+  printf("last receive: ----\n"); 
+  n = recvfrom(sockfd, (char*)bu, 1024, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
+  bu[n] = '\0';
+  printf("n: %d\n",n);
+  printf("type: %d\n", ((struct Packet_ACK_C*)bu)->type);
   close(sockfd);
   return 1;
 }
+
+
 
 int main(int argc, char** argv)
 {
