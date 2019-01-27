@@ -46,3 +46,5 @@ struct Packet_ACK_CC {
 };
 
 int isNumber(char *);
+int validateFilePath(const char *);
+void usage(char *);

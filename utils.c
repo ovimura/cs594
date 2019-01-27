@@ -1,5 +1,10 @@
 #include "packet.h"
 
+void usage(char *a)
+{
+  printf("Usage: %s <server_ip> <port> <file>\n", a);
+}
+
 int isNumber(char* s)
 {
   int len = strlen(s);
@@ -11,3 +16,12 @@ int isNumber(char* s)
     }
 }
 
+int validateFilePath(const char *f)
+{
+  FILE *file;
+  if(file = fopen(f, "r"))
+  {
+    fclose(file);
+    return 1;
+  } else return 0;
+}

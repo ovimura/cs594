@@ -39,10 +39,6 @@ int isServerIpFormat(char *ip)
     return 0;
 }
 
-int validateFileName(char *fname)
-{
-  return 1;
-}
 
 struct Packet_SYN_ACK_C *desirealize_r(char *b)
 {
@@ -93,6 +89,11 @@ int main(int argc, char** argv)
     if(!isNumber(argv[2])){
 	printf("port is not a number\n");
 	exit(-1);
+    }
+    if(!validateFilePath(argv[3])) {
+      fprintf(stderr, "the file provided is not valid\n");
+      usage(argv[0]);
+      exit(1);
     }
     char buffer[1024];
     char* hello = "Hello from client";

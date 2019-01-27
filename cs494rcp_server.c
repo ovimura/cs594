@@ -33,7 +33,6 @@ char * serialize_r(struct Packet_SYN_ACK_C *p)
   return r;
 }
 
-char *hello = "Hello from server";
 struct Packet_SYN_ACK_C s_ack;
 char *buf;// = serialize_r(&s_ack);
 
@@ -45,7 +44,7 @@ int handshake(struct sockaddr_in cliaddr)
   int len, n;
   n = recvfrom(sockfd, (char *)buffer, 2048, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
   buffer[n] = '\0';
-  printf("n: %d\n", n);
+  printf("receives syn packet, n: %d\n", n);
 
   struct Packet_SYN_C *p = (struct Packet_SYN_C*)desirealize_s(buffer);
 
@@ -58,16 +57,14 @@ int handshake(struct sockaddr_in cliaddr)
   s_ack.file_size = 3333333;
   buf = serialize_r(&s_ack);
 
-  for(int j=0;j<10; j++) {
+  for(int j=0;j<1; j++) {
     sendto(sockfd, (const char*)buf, sizeof(s_ack), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-    printf("Hello message sent.\n");      
+    printf("syn+ack packet message sent to server\n");      
   }
 
-//  sleep(3);
-  printf("last receive: ----\n"); 
   n = recvfrom(sockfd, (char*)bu, 1024, MSG_WAITALL, (struct sockaddr*)&cliaddr, &len);
   bu[n] = '\0';
-  printf("n: %d\n",n);
+  printf("ack connection packet received from client, n: %d\n",n);
   printf("type: %d\n", ((struct Packet_ACK_C*)bu)->type);
   close(sockfd);
   return 1;
