@@ -8,8 +8,12 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <time.h>
+#include <signal.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <libgen.h>
 
-//long PORT = 8080;
 
 enum packet_type {S, R, W, D, A, C};
 
@@ -45,6 +49,15 @@ struct Packet_ACK_CC {
   int seq_num;
 };
 
+
 int isNumber(char *);
 int validateFilePath(const char *);
 void usage(char *);
+int isServerIpFormat(char *);
+void timer_thread(union sigval);
+void set_signal();
+void setup_one_shot_timer(int);
+void arm_timer();
+void disarm_timer();
+int getExpired();
+int find_size(char file_name[]);

@@ -1,12 +1,12 @@
-#include "packet.h"
+#include "packets.h"
 
-long PORT = 8080;
-
+long PORT = 1080;
+char *fname;
 int sockfd;
 char s[1032];
+
 char * serialize_s(struct Packet_SYN_C *p)
 {
-//  char *s = (char*)malloc(sizeof(struct Packet_SYN_C));
   memcpy(s, (const char*)p, 1032);
   return s;
 }
@@ -24,21 +24,7 @@ char * serialize_w(struct Packet_ACK_C *p)
 //  return NULL;
 //}
 
-int isServerIpFormat(char *ip)
-{ char delim[] = ".";
-  char *ptr = strtok(ip, delim);
-  int i = 0; 
-  while(ptr != NULL)
-  {
-    ptr = strtok(NULL, delim);
-    i++;
-  }
-  if(i==4)
-    return 1;
-  else
-    return 0;
-}
-
+long file_size = 0;
 
 struct Packet_SYN_ACK_C *desirealize_r(char *b)
 {
@@ -46,34 +32,92 @@ struct Packet_SYN_ACK_C *desirealize_r(char *b)
   return p;
 }
 
-
-
+struct sockaddr_in servaddr, cliaddr;
 
 struct Packet_ACK_C ack_c;
+struct Packet_SYN_C syn;
+char *bname;
 
 int handshake(struct sockaddr_in servaddr)
 {
-  struct Packet_SYN_C syn;
-  char *bb = malloc(2048);
+  char bb[1024]; 
   syn.type = S;
   syn.pkt_len = sizeof(syn);
-  strcpy(syn.filename, "test.jpg");
+  bname = malloc(100);
+  memset(bname, '\0', 100);
+  strcpy(syn.filename, fname);
+  printf("fname: %s\n", fname);
+  memcpy(bname, basename(fname), sizeof(basename(fname)));
+  printf("bname: %s\n", bname);
   int n, len;
-//  char *uu = serialize_s(&syn);
-  sendto(sockfd, (const char*)serialize_s(&syn), 1024, MSG_CONFIRM, (const struct sockaddr*)&servaddr, sizeof(servaddr));
+sendto(sockfd,(const char*)serialize_s(&syn),1024,MSG_CONFIRM,(const struct sockaddr*)&servaddr,sizeof(servaddr));
   printf("---\n");
-  n = recvfrom(sockfd, (char*)bb, 1024, MSG_WAITALL, (struct sockaddr*)&servaddr, &len);
+
+  n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)(&servaddr),&len);
+  char* pkt = malloc(n * sizeof(char));
+  printf("==%d===\n", n);
+  //Read packet
+  recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&servaddr),&len);
 
   printf("received: %d\n",n);
-  struct Packet_SYN_ACK_C *p = desirealize_r(bb);
+  struct Packet_SYN_ACK_C *p = desirealize_r(pkt);
   printf("Server: %d %ld\n", p->type, p->file_size);
-  
-//  struct Packet_ACK_C ack_c;
+  file_size = p->file_size;
   ack_c.type = W;
-  printf("send again\n"); 
-  sendto(sockfd, (const char*)serialize_w(&ack_c), 1024, MSG_CONFIRM, (const struct sockaddr*)&servaddr, sizeof(servaddr));
-  close(sockfd);
+  printf("send again\n");
+sendto(sockfd,(const char*)serialize_w(&ack_c),1024,MSG_CONFIRM,(const struct sockaddr*)&servaddr,sizeof(servaddr));
+  //  close(sockfd);
   return 1;
+}
+
+void cpy(void *src, void *dest, int i, int j)
+{
+  char *s = (char*)src;
+  char *d = (char*)dest;
+  for(int k=i; k<(i+j); k++)
+    d[k] = s[k-i];
+}
+
+struct Packet_ACK_D pad;
+
+int receive_data()
+{
+  int len, n;
+  char *pkt;
+  char *buffer;
+  int size=0;
+  char *temp;
+  char *a;
+  int b=0;
+  char *tmp;
+  int max = file_size/1024 + ((file_size%1024==0)? 0:1);
+  printf("max: %d\n", max);
+  for (int i=0; i<max; i++)
+  {
+    n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)&servaddr, &len);
+    pkt = malloc(n*sizeof(char));
+    size +=n;
+    tmp = buffer;
+    buffer = malloc(size*sizeof(char));
+    memcpy(buffer, tmp, size);
+
+    recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&servaddr),&len);
+    b=size-n;
+    cpy(pkt, buffer, b, n);
+    temp = buffer;
+    
+    // send Packet_ACK_D
+    pad.type = A;
+    int ll = sizeof(servaddr);
+    struct sockaddr* ad = (struct sockaddr*)&servaddr;
+    sendto(sockfd,(const char*)&pad,1024,MSG_CONFIRM,ad, ll);
+  }
+
+  strcat(bname, ".out");
+  FILE *f=fopen(bname,"wb");
+  fwrite(temp, size, 1, f);
+  fclose(f);
+  return -1;
 }
 
 int main(int argc, char** argv)
@@ -89,16 +133,16 @@ int main(int argc, char** argv)
     if(!isNumber(argv[2])){
 	printf("port is not a number\n");
 	exit(-1);
+    } else {
+      PORT = atol(argv[2]);
     }
     if(!validateFilePath(argv[3])) {
       fprintf(stderr, "the file provided is not valid\n");
       usage(argv[0]);
       exit(1);
+    } else {
+      fname = argv[3];
     }
-    char buffer[1024];
-    char* hello = "Hello from client";
-    struct sockaddr_in servaddr;
-
     // Creating socket file descriptor
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
       perror("socket creation failed");
@@ -110,9 +154,10 @@ int main(int argc, char** argv)
     // Filling server information
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(PORT);
-    inet_pton(AF_INET, "131.252.208.103",&servaddr.sin_addr.s_addr);
+    inet_pton(AF_INET, argv[1], &servaddr.sin_addr.s_addr);
 
     handshake(servaddr);
+    receive_data();
   }
   return 0;
 }
