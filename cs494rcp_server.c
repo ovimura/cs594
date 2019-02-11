@@ -7,27 +7,6 @@ char *fname;
 
 
 struct sockaddr_in servaddr, cliaddr;
-struct Packet_SYN_C *p;
-
-struct Packet_SYN_C *desirealize_s(char *b)
-{
-  p = (struct Packet_SYN_C*)b;
-  return p;
-}
-
-struct Packet_ACK_C *pp;
-struct Packet_ACK_C *desirealize_w(char *b)
-{
-  pp = (struct Packet_ACK_C*)b;
-  return pp;
-}
-
-char r[1024];
-char * serialize_r(struct Packet_SYN_ACK_C *ppp)
-{
-  memcpy(r, (const char*)ppp, 1024);
-  return r;
-}
 
 struct Packet_SYN_ACK_C s_ack;
 char *buf;
@@ -36,7 +15,6 @@ int len;
 
 int handshake(struct sockaddr_in cliaddri)
 {
-  char buffer[1024];
   int n;
   
   n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)&cliaddr, &len);
@@ -45,22 +23,22 @@ int handshake(struct sockaddr_in cliaddri)
   printf("receives syn packet, n: %d\n", n);
   
   struct Packet_SYN_C *p = (struct Packet_SYN_C*)desirealize_s(pkt);
-
+  
   printf("Client: |%d|, |%d|, |%s|\n", p->type, p->pkt_len, p->filename);
-
+  printf("filename: %s\n", p->filename); 
   s_ack.type = R;
   s_ack.file_size = find_size(p->filename);
   fname = malloc(sizeof(p->filename));
   memcpy(fname, p->filename, sizeof(p->filename));
   buf = serialize_r(&s_ack);
-
-  printf("\n\ns_ack: %ld\n", sizeof(s_ack));
-
+  memcpy(bu, buf, 1024);
+  
   for(int j=0;j<1; j++) {
-sendto(sockfd,(const char*)buf,100,MSG_CONFIRM,(const struct sockaddr *)&cliaddr,len);
+    sendto(sockfd,(const char*)bu,1024,0,(const struct sockaddr *)&cliaddr,sizeof(cliaddr));
     printf("\nsyn+ack packet message sent to server\n");
   }
   n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)&cliaddr, &len);
+  printf("bbefore\n");
   char *pkt1 = malloc(n*sizeof(char));
   recvfrom(sockfd, pkt1, n, 0, (struct sockaddr*)(&cliaddr), &len);
   printf("ack connection packet received from client, n: %d\n",n);
@@ -68,9 +46,7 @@ sendto(sockfd,(const char*)buf,100,MSG_CONFIRM,(const struct sockaddr *)&cliaddr
   return 1;
 }
 
-
 struct Packet_DATA_D data;
-//char *fname;
 
 int send_data()
 {
@@ -79,7 +55,6 @@ int send_data()
   data.seq_num = 1;
   data.pkt_len = sizeof(struct Packet_DATA_D*);
   FILE *fd = fopen(fname,"rb");
-//  FILE *fc = fopen("f.jpg.server","wb");
   if(fd==NULL)
   {
     printf("Unable to open file\n");
@@ -95,8 +70,6 @@ int send_data()
     printf("r %d", n);
     arm_timer();
     sendto(sockfd, (const char*)data.data, n, MSG_CONFIRM, (const struct sockaddr*)&cliaddr, len);
-    //disarm_timer();
-//    n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)(&servaddr),&len);
     n=recvfrom(sockfd,NULL,0,MSG_PEEK|MSG_TRUNC,(struct sockaddr*)(&servaddr),&len);
     while((n<0 && getExpired()==0)||((n<0)&&getExpired()==1))
     {
@@ -113,15 +86,30 @@ int send_data()
        t = (struct Packet_ACK_D*)pkt;
        printf("typeeeee :%d\n",t->type);
     }
-//    if(fwrite(&data.data, 1, n, fc)>0)
-//    {
-//      printf("w\n");
-//    }
   }
   printf("done\n");
   fclose(fd);
-//  fclose(fc);
   return 0;
+}
+
+struct Packet_ACK_CC a_cc;
+char temp[1024];
+
+void close_connection()
+{
+   a_cc.type = C;
+   memcpy(temp, (struct Packet_ACK_CC *)&a_cc, 100);
+   for (int i=0; i<1; i++)
+     sendto(sockfd,(const char*)temp,100,0,(const struct sockaddr*)&cliaddr, sizeof(cliaddr));
+
+   int n, len;
+   printf("sent-----\n");
+   n = recvfrom(sockfd, NULL, 0, MSG_PEEK|MSG_TRUNC, (struct sockaddr*)(&servaddr),&len);
+   char *pkt = malloc(n*sizeof(char));
+   printf("%d \n", n);
+   recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&servaddr),&len);
+   struct Packet_ACK_CC *cc = (struct Packet_ACK_CC *)pkt;
+   printf("--: > %d\n",cc->type);
 }
 
 int main(int argc, char** argv)
@@ -158,5 +146,6 @@ int main(int argc, char** argv)
   set_signal();
   setup_one_shot_timer(1);
   send_data();
+  close_connection();
   return 0;
 }

@@ -61,3 +61,13 @@ void arm_timer();
 void disarm_timer();
 int getExpired();
 int find_size(char file_name[]);
+void cpy(void *src, void *dest, int i, int j);
+
+char *serialize_r(struct Packet_SYN_ACK_C *r);
+char *serialize_s(struct Packet_SYN_C *s);
+char *serialize_w(struct Packet_ACK_C *w);
+
+struct Packet_SYN_C *desirealize_s(char *s);
+struct Packet_ACK_C *desirealize_w(char *w);
+struct Packet_SYN_ACK_C *desirealize_r(char *r);
+

@@ -48,6 +48,16 @@ int isServerIpFormat(char *ip)
     return 0;
 }
 
+void cpy(void *src, void *dest, int i, int j)
+{
+  char *s = (char*)src;
+  char *d = (char*)dest;
+  for(int k=i; k<(i+j); k++)
+    d[k] = s[k-i];
+}
+
+
+// ------------------- timer ------------------
 void timer_thread(union sigval sv)
 {
   pthread_mutex_lock(&mutex);
@@ -96,6 +106,8 @@ void setNotExpired()
   pthread_mutex_unlock(&mutex);
   printf("info: expired set to 0\n");
 }
+// --------------------- timer ----------------------
+
 
 int find_size(char file_name[])
 {
@@ -110,3 +122,56 @@ int find_size(char file_name[])
   fclose(fp);
   return result;
 }
+
+// ---------------------- desirealize ----------------------
+struct Packet_SYN_C *desirealize_s(char *b)
+{
+  struct Packet_SYN_C *p = malloc(sizeof(struct Packet_SYN_C));
+  memcpy(&((struct Packet_SYN_C*)p)->type, &((struct Packet_SYN_C*)b)->type, sizeof(char));
+  memcpy(&((struct Packet_SYN_C*)p)->pkt_len, &((struct Packet_SYN_C*)b)->pkt_len, sizeof(short));
+  memcpy(&((struct Packet_SYN_C *)p)->filename,&((struct Packet_SYN_C *)b)->filename, sizeof(char)*100);
+  return p;
+}
+
+struct Packet_ACK_C *pp;
+struct Packet_ACK_C *desirealize_w(char *b)
+{
+  pp = (struct Packet_ACK_C*)b;
+  return pp;
+}
+
+
+struct Packet_SYN_ACK_C *desirealize_r(char *b)
+{
+  struct Packet_SYN_ACK_C *p = (struct Packet_SYN_ACK_C*)b;
+  return p;
+}
+
+char r[1024];
+char * serialize_r(struct Packet_SYN_ACK_C *ppp)
+{
+  memcpy(r, (const char*)ppp, 1024);
+  return r;
+}
+
+
+char * serialize_s(struct Packet_SYN_C *p)
+{
+  char *s = malloc(sizeof(char)+sizeof(short)+sizeof(char)*100);
+  int off=0;
+  memcpy(s, &p->type, sizeof(char));
+  off = sizeof(char);
+  memcpy(s+off+1, &p->pkt_len, sizeof(short));
+  off += sizeof(short);
+  memcpy(s+off+1, &p->filename, sizeof(char)*98);
+  return s;
+}
+
+char m[1024];
+
+char * serialize_w(struct Packet_ACK_C *p)
+{
+  memcpy(m, (const char*)p, 1024);
+  return m;
+}
+
