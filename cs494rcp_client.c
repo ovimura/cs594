@@ -43,7 +43,7 @@ struct Packet_ACK_D pad;
 int receive_data()
 {
   int len, n;
-  char *pkt;
+  char pkt[1024];
   char *buffer;
   int size=0;
   char *temp;
@@ -57,7 +57,7 @@ int receive_data()
   {
     n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)&servaddr, &len);
     printf("first pkt size %d\n",n);
-    pkt = malloc(n*sizeof(char));
+    //pkt = malloc(n*sizeof(char));
     size +=n;
     tmp = buffer;
     buffer = malloc(size*sizeof(char));
