@@ -16,23 +16,23 @@ int len;
 int handshake(struct sockaddr_in cliaddri)
 {
   int n;
-  
   n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)&cliaddr, &len);
   char *pkt = malloc(n*sizeof(char));
   recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&cliaddr), &len);
-  printf("receives syn packet, n: %d\n", n);
   
   struct Packet_SYN_C *p = (struct Packet_SYN_C*)desirealize_s(pkt);
-  
+  free(pkt);
+
   printf("Client: |%d|, |%d|, |%s|\n", p->type, p->pkt_len, p->filename);
   printf("filename: %s\n", p->filename); 
+
   s_ack.type = R;
   s_ack.file_size = find_size(p->filename);
   fname = malloc(sizeof(p->filename));
   memcpy(fname, p->filename, sizeof(p->filename));
   buf = serialize_r(&s_ack);
   memcpy(bu, buf, 1024);
-  
+  free(p);
   for(int j=0;j<1; j++) {
     sendto(sockfd,(const char*)bu,1024,0,(const struct sockaddr *)&cliaddr,sizeof(cliaddr));
     printf("\nsyn+ack packet message sent to server\n");
@@ -52,8 +52,9 @@ int send_data()
 {
   printf("start sending data\n");
   data.type = D;
-  data.seq_num = 1;
-  data.pkt_len = sizeof(struct Packet_DATA_D*);
+  printf("d: %d\n", data.type);
+  data.seq_num = 0;
+  data.pkt_len = 0; //sizeof(struct Packet_DATA_D);
   FILE *fd = fopen(fname,"rb");
   if(fd==NULL)
   {
@@ -67,13 +68,18 @@ int send_data()
   int n=-2;
   while ((n = fread(data.data, 1, 1024, fd))>0)
   {
+    data.seq_num += 1;
+    data.pkt_len = n;
+    char *dt = serialize_d(&data);
     printf("r %d", n);
     arm_timer();
-    sendto(sockfd, (const char*)data.data, n, MSG_CONFIRM, (const struct sockaddr*)&cliaddr, len);
+    // (const char*)data.data, n
+    sendto(sockfd, dt, sizeof(struct Packet_DATA_D) , MSG_CONFIRM, (const struct sockaddr*)&cliaddr, len);
+
     n=recvfrom(sockfd,NULL,0,MSG_PEEK|MSG_TRUNC,(struct sockaddr*)(&servaddr),&len);
     while((n<0 && getExpired()==0)||((n<0)&&getExpired()==1))
     {
-      sendto(sockfd, (const char*)data.data, n, MSG_CONFIRM, (const struct sockaddr*)&cliaddr, len);
+      sendto(sockfd, dt, sizeof(struct Packet_DATA_D), MSG_CONFIRM, (const struct sockaddr*)&cliaddr, len);
       n=recvfrom(sockfd,NULL,0,MSG_PEEK|MSG_TRUNC,(struct sockaddr*)(&servaddr),&len);
     }
     if(n>0 && getExpired()==0)
@@ -84,7 +90,7 @@ int send_data()
     if (n != -1)
     {
        t = (struct Packet_ACK_D*)pkt;
-       printf("typeeeee :%d\n",t->type);
+       printf("\ntypeeeee :%d\n",t->type);
     }
   }
   printf("done\n");

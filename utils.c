@@ -76,8 +76,8 @@ void set_signal()
 
 void setup_one_shot_timer(int i)
 {
-  timerspec.it_value.tv_sec=i;
-  timerspec.it_value.tv_nsec=0;
+  timerspec.it_value.tv_sec=0;
+  timerspec.it_value.tv_nsec=1000000000;
   timerspec.it_interval.tv_sec=0;
   timerspec.it_interval.tv_nsec=0;
 }
@@ -92,6 +92,7 @@ void disarm_timer()
 {
   timerspec.it_value.tv_sec=0;
   timer_settime(timer, 0, &timerspec, 0);
+//  setNotExpired();
 }
 
 int getExpired()
@@ -107,7 +108,6 @@ void setNotExpired()
   printf("info: expired set to 0\n");
 }
 // --------------------- timer ----------------------
-
 
 int find_size(char file_name[])
 {
@@ -133,24 +133,31 @@ struct Packet_SYN_C *desirealize_s(char *b)
   return p;
 }
 
-struct Packet_ACK_C *pp;
 struct Packet_ACK_C *desirealize_w(char *b)
 {
-  pp = (struct Packet_ACK_C*)b;
-  return pp;
+  struct Packet_ACK_C *p = malloc(sizeof(char));
+  memcpy(&((struct Packet_ACK_C*)p)->type, b, sizeof(char));
+  printf("type: packet_ack_c: %d\n",p->type);
+  return p;
 }
 
 
 struct Packet_SYN_ACK_C *desirealize_r(char *b)
 {
-  struct Packet_SYN_ACK_C *p = (struct Packet_SYN_ACK_C*)b;
+  struct Packet_SYN_ACK_C *p = malloc(sizeof(struct Packet_SYN_ACK_C));
+  memcpy(&((struct Packet_SYN_ACK_C*)p)->type, &((struct Packet_SYN_ACK_C*)b)->type, sizeof(char));
+  memcpy(&((struct Packet_SYN_ACK_C*)p)->file_size, b+1, sizeof(long));
   return p;
 }
 
-char r[1024];
 char * serialize_r(struct Packet_SYN_ACK_C *ppp)
 {
-  memcpy(r, (const char*)ppp, 1024);
+  long sii = sizeof(char)+sizeof(long)+4;
+  char *r = malloc(sii);
+  int off = 0;
+  memcpy(r, &ppp->type, sizeof(char));
+  off=sizeof(char);
+  memcpy(r+off, &ppp->file_size, sizeof(long)+2);
   return r;
 }
 
@@ -167,11 +174,37 @@ char * serialize_s(struct Packet_SYN_C *p)
   return s;
 }
 
-char m[1024];
-
 char * serialize_w(struct Packet_ACK_C *p)
 {
-  memcpy(m, (const char*)p, 1024);
+  char *m = malloc(sizeof(char));
+  memcpy(m, &p->type, sizeof(char));
   return m;
 }
 
+char *serialize_d(struct Packet_DATA_D *p)
+{
+  char *d = malloc(sizeof(char)+sizeof(int)+sizeof(short)+sizeof(char)*1024);
+  int off=0;
+  memcpy(d, &p->type, sizeof(char));
+  off = sizeof(char);
+  memcpy(d+off, &p->seq_num, sizeof(int));
+  off += sizeof(int);
+  memcpy(d+off, &p->pkt_len, sizeof(short));
+  off += sizeof(short);
+  memcpy(d+off, &p->data, sizeof(char)*1024);
+  return d;
+}
+
+struct Packet_DATA_D *desirealize_d(char *d)
+{
+  struct Packet_DATA_D *p = malloc(sizeof(struct Packet_DATA_D));
+  int off=0;
+  memcpy(&p->type, d, sizeof(char));
+  off+=sizeof(char);
+  memcpy(&p->seq_num, d+off, sizeof(int));
+  off+=sizeof(int);
+  memcpy(&p->pkt_len, d+off, sizeof(short));
+  off+=sizeof(short);
+  memcpy(&p->data, d+off, 1024);
+  return p;
+}

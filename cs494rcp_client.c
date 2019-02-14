@@ -23,15 +23,17 @@ int handshake(struct sockaddr_in servaddr)
   int n, len;
   char *ser = serialize_s(&syn);
   sendto(sockfd,ser,1024,MSG_PEEK|MSG_TRUNC,(const struct sockaddr*)&servaddr,sizeof(servaddr));
-
+//  free(ser);
   n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)(&servaddr),&len);
   printf("==%d===\n", n);
   //Read packet
   recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&servaddr),&len);
-  
+
   struct Packet_SYN_ACK_C *p = desirealize_r(pkt);
   printf("Server SYN ACK Packet: %d %ld\n", p->type, p->file_size);
   file_size = p->file_size;
+  printf("file_size: %ld", p->file_size);
+//  free(p);
 
   ack_c.type = W;
   sendto(sockfd,(const char*)serialize_w(&ack_c),1024,MSG_PEEK|MSG_TRUNC,(const struct sockaddr*)&servaddr,sizeof(servaddr));
@@ -43,8 +45,8 @@ struct Packet_ACK_D pad;
 int receive_data()
 {
   int len, n;
-  char pkt[1024];
-  char *buffer;
+  char pkt[2048];
+  char *buffer=NULL;
   int size=0;
   char *temp;
   char *a;
@@ -58,14 +60,26 @@ int receive_data()
     n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)&servaddr, &len);
     printf("first pkt size %d\n",n);
     //pkt = malloc(n*sizeof(char));
-    size +=n;
+    //size +=n;
     tmp = buffer;
-    buffer = malloc(size*sizeof(char));
-    memcpy(buffer, tmp, size);
+//    buffer = malloc(size*sizeof(char));
+//    if(tmp != NULL)
+//      memcpy(buffer, tmp, size);
+    printf("after memcpy invoked\n");
     recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&servaddr),&len);
-    b=size-n;
 
-    cpy(pkt, buffer, b, n);
+//    b=size-(n-12);
+    struct Packet_DATA_D *dd = desirealize_d(pkt);
+
+    printf("data.pkt_len %d\n", dd->pkt_len);
+    size += dd->pkt_len;
+    buffer = malloc(size*sizeof(char));
+
+    if(tmp!=NULL)
+	    memcpy(buffer, tmp, size);
+
+    b=size-dd->pkt_len;
+    cpy(&dd->data, buffer, b, dd->pkt_len);
     temp = buffer;
     // send Packet_ACK_D
     pad.type = A;

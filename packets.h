@@ -24,16 +24,16 @@ struct Packet_SYN_C {
 };
 
 struct Packet_SYN_ACK_C {
-  enum packet_type type;
+  char type;
   long file_size;
 };
 
 struct Packet_ACK_C {
-  enum packet_type type;
+  char type;
 };
 
 struct Packet_DATA_D {
-  enum packet_type type;
+  char type;
   int seq_num;
   short pkt_len;
   char data[1024];
@@ -60,13 +60,17 @@ void setup_one_shot_timer(int);
 void arm_timer();
 void disarm_timer();
 int getExpired();
+void setNotExpired();
 int find_size(char file_name[]);
 void cpy(void *src, void *dest, int i, int j);
 
 char *serialize_r(struct Packet_SYN_ACK_C *r);
 char *serialize_s(struct Packet_SYN_C *s);
 char *serialize_w(struct Packet_ACK_C *w);
+char *serialize_d(struct Packet_DATA_D *d);
 
+
+struct Packet_DATA_D *desirealize_d(char *d);
 struct Packet_SYN_C *desirealize_s(char *s);
 struct Packet_ACK_C *desirealize_w(char *w);
 struct Packet_SYN_ACK_C *desirealize_r(char *r);
