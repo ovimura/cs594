@@ -23,7 +23,7 @@ int handshake(struct sockaddr_in servaddr)
   int n, len;
   char *ser = serialize_s(&syn);
   sendto(sockfd,ser,1024,MSG_PEEK|MSG_TRUNC,(const struct sockaddr*)&servaddr,sizeof(servaddr));
-//  free(ser);
+  free(ser);
   n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)(&servaddr),&len);
   printf("==%d===\n", n);
   //Read packet
@@ -32,20 +32,22 @@ int handshake(struct sockaddr_in servaddr)
   struct Packet_SYN_ACK_C *p = desirealize_r(pkt);
   printf("Server SYN ACK Packet: %d %ld\n", p->type, p->file_size);
   file_size = p->file_size;
-  printf("file_size: %ld", p->file_size);
-//  free(p);
+  printf("file_size: %ld\n", p->file_size);
+  free(p);
 
   ack_c.type = W;
-  sendto(sockfd,(const char*)serialize_w(&ack_c),1024,MSG_PEEK|MSG_TRUNC,(const struct sockaddr*)&servaddr,sizeof(servaddr));
+  char *ser_w = serialize_w(&ack_c);
+  sendto(sockfd,ser_w,sizeof(ack_c),MSG_PEEK|MSG_TRUNC,(const struct sockaddr*)&servaddr,sizeof(servaddr));
+  free(ser_w);
   return 1;
 }
 
 struct Packet_ACK_D pad;
-
+char *pkt_ack_d;
+char pktt[2048];
 int receive_data()
 {
   int len, n;
-  char pkt[2048];
   char *buffer=NULL;
   int size=0;
   char *temp;
@@ -54,38 +56,35 @@ int receive_data()
   char *tmp;
   char *ll;
   int max = file_size/1024 + ((file_size%1024==0)? 0:1);
-  printf("max: %d\n", max);
   for (int i=0; i<max; i++)
   {
     n = recvfrom(sockfd, NULL, 0, MSG_PEEK | MSG_TRUNC, (struct sockaddr*)&servaddr, &len);
-    printf("first pkt size %d\n",n);
-    //pkt = malloc(n*sizeof(char));
-    //size +=n;
     tmp = buffer;
-//    buffer = malloc(size*sizeof(char));
-//    if(tmp != NULL)
-//      memcpy(buffer, tmp, size);
-    printf("after memcpy invoked\n");
-    recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&servaddr),&len);
+    recvfrom(sockfd, pktt, n, 0, (struct sockaddr*)(&servaddr),&len);
 
-//    b=size-(n-12);
-    struct Packet_DATA_D *dd = desirealize_d(pkt);
+    struct Packet_DATA_D *dd = desirealize_d(pktt);
 
-    printf("data.pkt_len %d\n", dd->pkt_len);
+printf("client: packet %d received | %d | %d\n", dd->seq_num,dd->type, dd->pkt_len);
     size += dd->pkt_len;
     buffer = malloc(size*sizeof(char));
 
     if(tmp!=NULL)
-	    memcpy(buffer, tmp, size);
+      memcpy(buffer, tmp, size);
 
     b=size-dd->pkt_len;
     cpy(&dd->data, buffer, b, dd->pkt_len);
     temp = buffer;
-    // send Packet_ACK_D
+    free(dd);
     pad.type = A;
+    pad.seq_num = i;
+    pkt_ack_d = serialize_ad(&pad);
     int ll = sizeof(servaddr);
     struct sockaddr* ad = (struct sockaddr*)&servaddr;
-    sendto(sockfd,(const char*)&pad,1024,MSG_CONFIRM,ad, ll);
+    long ss = sizeof(pad);
+    sendto(sockfd,pkt_ack_d,ss,MSG_CONFIRM,ad, ll);
+    printf("client: packet ack %d sent, type: %d \n", pad.seq_num, pad.type);
+    free(pkt_ack_d);
+//    free(tmp); free  memory correctly
   }
 
   strcat(bname, ".out");
@@ -104,9 +103,11 @@ void close_connection_client()
   printf("***\n");
 
   recvfrom(sockfd, pkt, n, 0, (struct sockaddr*)(&servaddr),&len);
-  printf("received closing connection %d\n",n);
+  struct Packet_ACK_CC *acc = desirealize_cc(pkt);
+  printf("client: received closing connection packet type %d\n",acc->type);
   a_cc.type = C;
-  sendto(sockfd, (const char*)&a_cc, 1024, MSG_PEEK|MSG_TRUNC, (const struct sockaddr*)&servaddr, sizeof(servaddr));
+  char * packet_ack_cc = serialize_cc(&a_cc);
+  sendto(sockfd, packet_ack_cc, 1024, MSG_PEEK|MSG_TRUNC, (const struct sockaddr*)&servaddr, sizeof(servaddr));
   if(close(sockfd) != 0)
     fprintf(stderr, "failed to close the client socket\n");
 }

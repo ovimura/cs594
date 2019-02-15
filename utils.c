@@ -76,8 +76,8 @@ void set_signal()
 
 void setup_one_shot_timer(int i)
 {
-  timerspec.it_value.tv_sec=0;
-  timerspec.it_value.tv_nsec=1000000000;
+  timerspec.it_value.tv_sec=i;
+  timerspec.it_value.tv_nsec=0;
   timerspec.it_interval.tv_sec=0;
   timerspec.it_interval.tv_nsec=0;
 }
@@ -102,9 +102,9 @@ int getExpired()
 
 void setNotExpired()
 {
-  pthread_mutex_lock(&mutex);
+//  pthread_mutex_lock(&mutex);
   expired=0;
-  pthread_mutex_unlock(&mutex);
+//  pthread_mutex_unlock(&mutex);
   printf("info: expired set to 0\n");
 }
 // --------------------- timer ----------------------
@@ -206,5 +206,45 @@ struct Packet_DATA_D *desirealize_d(char *d)
   memcpy(&p->pkt_len, d+off, sizeof(short));
   off+=sizeof(short);
   memcpy(&p->data, d+off, 1024);
+  return p;
+}
+
+char *serialize_ad(struct Packet_ACK_D *ad)
+{
+  char *p = malloc(sizeof(char)+sizeof(int));
+  int off=0;
+  memcpy(p, &ad->type, sizeof(char));
+  off+=sizeof(char);
+  memcpy(p+off, &ad->seq_num, sizeof(int));
+  return p;
+}
+
+struct Packet_ACK_D *desirealize_ad(char *ad)
+{
+  struct Packet_ACK_D *p = malloc(sizeof(struct Packet_DATA_D));
+  int off=0;
+  memcpy(&p->type, ad, sizeof(char));
+  off+=sizeof(char);
+  memcpy(&p->seq_num, ad+off, sizeof(int));
+  return p;
+}
+
+char *serialize_cc(struct Packet_ACK_CC *cc)
+{
+  char *p = malloc(sizeof(char)+sizeof(int));
+  int off=0;
+  memcpy(p, &cc->type, sizeof(char));
+  off+=sizeof(char);
+  memcpy(p+off, &cc->seq_num, sizeof(int));
+  return p;
+}
+
+struct Packet_ACK_CC *desirealize_cc(char *cc)
+{
+  struct Packet_ACK_CC *p = malloc(sizeof(struct Packet_ACK_CC));
+  int off=0;
+  memcpy(&p->type, cc, sizeof(char));
+  off+=sizeof(char);
+  memcpy(&p->seq_num, cc+off, sizeof(int));
   return p;
 }

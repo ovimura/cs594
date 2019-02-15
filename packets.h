@@ -40,12 +40,12 @@ struct Packet_DATA_D {
 };
 
 struct Packet_ACK_D {
-  enum packet_type type;
+  char type;
   int seq_num;
 };
 
 struct Packet_ACK_CC {
-  enum packet_type type;
+  char type;
   int seq_num;
 };
 
@@ -68,8 +68,11 @@ char *serialize_r(struct Packet_SYN_ACK_C *r);
 char *serialize_s(struct Packet_SYN_C *s);
 char *serialize_w(struct Packet_ACK_C *w);
 char *serialize_d(struct Packet_DATA_D *d);
+char *serialize_ad(struct Packet_ACK_D *ad);
+char *serialize_cc(struct Packet_ACK_CC *cc);
 
-
+struct Packet_ACK_CC *desirealize_cc(char *cc);
+struct Packet_ACK_D *desirealize_ad(char *ad);
 struct Packet_DATA_D *desirealize_d(char *d);
 struct Packet_SYN_C *desirealize_s(char *s);
 struct Packet_ACK_C *desirealize_w(char *w);
