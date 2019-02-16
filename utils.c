@@ -7,6 +7,12 @@ int thread_param = 31415;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int expired=0;
 
+struct thread_params {
+  int sockid;
+  char *pkt;
+  struct sockaddr *addr;
+};
+
 void usage(char *a)
 {
   printf("Usage: %s <server_ip> <port> <file>\n", a);
@@ -60,10 +66,10 @@ void cpy(void *src, void *dest, int i, int j)
 // ------------------- timer ------------------
 void timer_thread(union sigval sv)
 {
+  int len;
   pthread_mutex_lock(&mutex);
   expired = 1;
   pthread_mutex_unlock(&mutex); 
-  printf("..timer_thread...\n");
 }
 
 void set_signal()
@@ -81,6 +87,7 @@ void setup_one_shot_timer(int i)
   timerspec.it_interval.tv_sec=0;
   timerspec.it_interval.tv_nsec=0;
 }
+
 
 void arm_timer()
 {
@@ -241,7 +248,7 @@ char *serialize_cc(struct Packet_ACK_CC *cc)
 
 struct Packet_ACK_CC *desirealize_cc(char *cc)
 {
-  struct Packet_ACK_CC *p = malloc(sizeof(struct Packet_ACK_CC));
+  struct Packet_ACK_CC *p = malloc(20);
   int off=0;
   memcpy(&p->type, cc, sizeof(char));
   off+=sizeof(char);

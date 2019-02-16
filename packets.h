@@ -49,7 +49,6 @@ struct Packet_ACK_CC {
   int seq_num;
 };
 
-
 int isNumber(char *);
 int validateFilePath(const char *);
 void usage(char *);
@@ -63,6 +62,7 @@ int getExpired();
 void setNotExpired();
 int find_size(char file_name[]);
 void cpy(void *src, void *dest, int i, int j);
+
 
 char *serialize_r(struct Packet_SYN_ACK_C *r);
 char *serialize_s(struct Packet_SYN_C *s);
