@@ -1,3 +1,9 @@
+/*
+ * Class: CS594
+ * Student: Ovidiu Mura
+ * Date: 02/15/2019
+ * */
+
 #include "packets.h"
 
 long PORT = 1080;
