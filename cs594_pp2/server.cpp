@@ -70,24 +70,27 @@ int main(int argc, char *argv[])
   PacketStreamer server_streamer(&server_socket);
   ifstream input_stream;
   SEQUENCE_NUMBER_T init_seqnum = INIT_SEQNUM;
-  StopWaitServer sw_server(server_streamer, MAX_PACKET_SIZE, ACK_TIMEOUT);
+  GBNServer sw_server(server_streamer, MAX_PACKET_SIZE, ACK_TIMEOUT);
   int retval;
   int port;
+  int w_size;
 
-  if (argc != 2)
+  if (argc != 3)
   {
     printf("Missing required parameter\n");
-    printf("Usage: %s port\n", argv[0]);
+    printf("Usage: %s port window_size\n", argv[0]);
     return EINVAL;
   }
 
   port = strtol(argv[1], nullptr, 10);
   server_socket.Bind(port);
   printf("Waiting for connections on port: %u\n", port);
+  w_size = strtol(argv[2], nullptr, 10);
+  sw_server.setWindowSize(w_size);
   retval = DoThreeWayHandShake(server_streamer, input_stream);
   if (retval == 0)
   {
-//    retval = sw_server.SendStream(&input_stream, init_seqnum);
+    retval = sw_server.SendStream(&input_stream, init_seqnum);
     DoCloseConnection(server_streamer, init_seqnum);
   }
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "udpsocket.hpp"
-#include "StopWaitServer.hpp"
+#include "GBNServer.hpp"
 #include <fstream>
 
 #define MAX_PACKET_SIZE 1000

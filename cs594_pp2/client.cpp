@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
       printf("Error opening output file: %s\n", filename.c_str());
       return EINVAL;
     }
-//    retval = sw_client.RecvStream(&output_stream, filesize, seq_num);
+    retval = sw_client.RecvStream(&output_stream, filesize, seq_num);
     DoCloseConnection(client_streamer, seq_num);
   }
 
