@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
   server_socket.Bind(port);
   printf("Waiting for connections on port: %u\n", port);
   w_size = strtol(argv[2], nullptr, 10);
-  sw_server.setWindowSize(w_size);
+  sw_server.SetWindowSize(w_size);
   retval = DoThreeWayHandShake(server_streamer, input_stream);
   if (retval == 0)
   {
