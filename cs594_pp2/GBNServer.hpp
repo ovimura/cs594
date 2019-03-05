@@ -5,7 +5,8 @@
 #include "Packets.hpp"
 #include "timer.hpp"
 #include <queue>
-
+#include <pthread.h>
+#include <cmath>
 
 using namespace std;
 
@@ -49,18 +50,25 @@ public:
   Timer acktimer;
   queue<SPacket> q;
   int q_size;
+  size_t last_window;
+  SEQUENCE_NUMBER_T seqnum = 0;
+  pthread_cond_t cond;
+  pthread_mutex_t win_mutex; // = PTHREAD_MUTEX_INITIALIZER;
+  void SetStateLPkt(State);
+  SEQUENCE_NUMBER_T sn;
 
   SharedContext(const SharedContext &) = delete;
   SharedContext &operator=(const SharedContext &) = delete;
 };
 
-class Reciver
+class Receiver
 {
 public:
-  Reciver();
-  void start();
+  Receiver(){}
+  void start(SharedContext *);
   void join(pthread_t);
-  void * handler_receiver(void*);
+  friend void * handler_receiver(void*);
+  class SharedContext *s_context;
 
 private:
   pthread_t threadid = -1;
@@ -72,16 +80,17 @@ private:
 class GBNServer
 {
 public:
-  GBNServer(PacketStreamer &streamer, PAYLOAD_LENGTH_T lmax_packet_size, int ack_timeout);
+  GBNServer(PacketStreamer &streamer, PAYLOAD_LENGTH_T lmax_packet_size, int ack_timeout, int w_size);
   int SendStream(istream *input_stream, SEQUENCE_NUMBER_T &init_seq);
   void SetWindowSize(int w_size);
+  int Push(SPacket);
 
 private:
   PAYLOAD_LENGTH_T max_packet_size;
   SEQUENCE_NUMBER_T seqnum;
   ack_handler handler;
   class SharedContext shared_ctx;
-  class Reciver reciver;
+  class Receiver receiver;
   friend class ack_handler;
 
   GBNServer(const GBNServer &) = delete;

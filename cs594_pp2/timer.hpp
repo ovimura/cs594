@@ -23,6 +23,7 @@ public:
   int SetTimer(const struct timespec &timeout);
   int SetTimer(const int timeout_ms);
   int CancelTimer();
+  int IsSet = 0;
 
 private:
   friend void sigev_notify_wrapper(union sigval param);

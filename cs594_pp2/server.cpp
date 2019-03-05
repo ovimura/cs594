@@ -1,5 +1,7 @@
 #include "server.hpp"
 
+size_t s = 0;
+
 int DoCloseConnection(PacketStreamer &server_streamer, SEQUENCE_NUMBER_T &init_seq_num)
 {
   Packet pkt;
@@ -34,7 +36,8 @@ int DoThreeWayHandShake(PacketStreamer &server_streamer, ifstream &input_stream)
     input_stream.open(filename, ifstream::in | ifstream::binary);
     if (input_stream.is_open())
     {
-      PacketStreamer::InitSYNACKPacket(pkt, getFileSize(input_stream));
+      s = getFileSize(input_stream);
+      PacketStreamer::InitSYNACKPacket(pkt, s);
       printf("Sending SYN+ACK Packet\n");
       server_streamer.SendPacket(pkt);
       recvd = server_streamer.RecvPacket(pkt);
@@ -70,7 +73,7 @@ int main(int argc, char *argv[])
   PacketStreamer server_streamer(&server_socket);
   ifstream input_stream;
   SEQUENCE_NUMBER_T init_seqnum = INIT_SEQNUM;
-  GBNServer sw_server(server_streamer, MAX_PACKET_SIZE, ACK_TIMEOUT);
+//  GBNServer sw_server(server_streamer, MAX_PACKET_SIZE, ACK_TIMEOUT);
   int retval;
   int port;
   int w_size;
@@ -86,7 +89,8 @@ int main(int argc, char *argv[])
   server_socket.Bind(port);
   printf("Waiting for connections on port: %u\n", port);
   w_size = strtol(argv[2], nullptr, 10);
-  sw_server.SetWindowSize(w_size);
+  GBNServer sw_server(server_streamer, MAX_PACKET_SIZE, ACK_TIMEOUT, w_size);
+//  sw_server.SetWindowSize(w_size);
   retval = DoThreeWayHandShake(server_streamer, input_stream);
   if (retval == 0)
   {
